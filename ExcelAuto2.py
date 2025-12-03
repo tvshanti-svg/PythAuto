@@ -44,7 +44,7 @@ if st.button("Process"):
                     if diff > 60:
                         result_list.append("TRUE")
                     else:
-                        result_list.append("NO")
+                        result_list.append("MATCHED")
                 else:
                     result_list.append("NO")
             else:
@@ -65,5 +65,6 @@ if st.button("Process"):
                 file_name="a3.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
 
 
