@@ -8,7 +8,7 @@ a1_file = st.file_uploader("Upload a1.xlsx", type=["xlsx"])
 a2_file = st.file_uploader("Upload a2.xlsx", type=["xlsx"])
 
 # Given date input
-gd = st.date_input("Select Given Date (gd)")
+gd = st.date_input("Select Given Date (GD)")
 
 if st.button("Process"):
     if not a1_file or not a2_file:
@@ -65,4 +65,5 @@ if st.button("Process"):
                 file_name="a3.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
 
