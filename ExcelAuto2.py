@@ -1,73 +1,73 @@
 import streamlit as st
-import pandas as pd
+import pyttsx3
+import os
+from moviepy.editor import ColorClip, AudioFileClip
 
-st.title("A1 vs A2 Excel Checker (60-Day Validation)")
+# Initialize page config
+st.set_page_config(page_title="TTS to MP4 Generator", page_icon="🎙️")
 
-# Upload Excel files
-a1_file = st.file_uploader("Upload a1.xlsx", type=["xlsx"])
-a2_file = st.file_uploader("Upload a2.xlsx", type=["xlsx"])
+# Helper to get voices
+def get_voices():
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+    return {v.name: v.id for v in voices}
 
-# Given date input
-gd = st.date_input("Select Given Date (GD)")
+st.title("🎙️ Text-to-Speech MP4 Creator")
+st.write("Convert your text into a video file with custom system voices.")
 
-if st.button("Process"):
-    if not a1_file or not a2_file:
-        st.error("Please upload both a1.xlsx and a2.xlsx")
+# 1. Voice Selection Sidebar
+voices_dict = get_voices()
+selected_voice_name = st.selectbox("Select a Voice", options=list(voices_dict.keys()))
+voice_id = voices_dict[selected_voice_name]
+
+# 2. Text Input
+text_input = st.text_area("Enter your script here:", height=200, placeholder="Hello, this is a test of the Microsoft David voice...")
+
+# 3. Generate Logic
+if st.button("Generate MP4 Video"):
+    if not text_input.strip():
+        st.error("Please enter some text first!")
     else:
-        # Read Excel files
-        a1 = pd.read_excel(a1_file)
-        a2 = pd.read_excel(a2_file)
+        with st.spinner("Converting text to speech and rendering video..."):
+            try:
+                # Setup Paths
+                audio_path = "temp_audio.wav"
+                video_path = "output_video.mp4"
 
-        # Convert columns
-        a1['A'] = a1['A'].astype(str).str.strip()
-        a2['A'] = a2['A'].astype(str).str.strip()
-        a2['B'] = pd.to_datetime(a2['B'], errors='coerce', dayfirst=True)
+                # A. Generate Audio
+                engine = pyttsx3.init()
+                engine.setProperty('voice', voice_id)
+                engine.save_to_file(text_input, audio_path)
+                engine.runAndWait()
 
-        # Given date
-        gd_date = pd.to_datetime(gd)
+                # B. Create Video (MP4)
+                audio_clip = AudioFileClip(audio_path)
+                # Create a simple dark background
+                video_clip = ColorClip(size=(1280, 720), color=(15, 15, 35), duration=audio_clip.duration)
+                video_clip = video_clip.set_audio(audio_clip)
+                
+                # Write file (using low preset for speed)
+                video_clip.write_videofile(video_path, fps=24, codec="libx264", audio_codec="aac", logger=None)
+                
+                audio_clip.close()
+                video_clip.close()
 
-        result_list = []
+                # C. Display & Download
+                st.success("✅ Video Generated Successfully!")
+                st.video(video_path)
+                
+                with open(video_path, "rb") as file:
+                    st.download_button(
+                        label="Download MP4",
+                        data=file,
+                        file_name="tts_video.mp4",
+                        mime="video/mp4"
+                    )
+                
+                # Cleanup temporary files
+                os.remove(audio_path)
+                
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
 
-        # Compare A1 with A2
-        for index, row in a1.iterrows():
-            a1_value = row['A']
-
-            # Check match
-            matched = a2[a2['A'] == a1_value]
-
-            if not matched.empty:
-                date_in_a2 = matched.iloc[0]['B']
-
-                if pd.notna(date_in_a2):
-                    diff = (date_in_a2 - gd_date).days
-
-                    if diff > 60:
-                        result_list.append("TRUE")
-                    else:
-                        result_list.append(date_in_a2)
-                else:
-                    result_list.append("NO")
-            else:
-                result_list.append("No Match")
-
-        # Add result to A1
-        a1['Result'] = result_list
-
-        # Save output
-        output_file = "a3.xlsx"
-        a1.to_excel(output_file, index=False)
-
-        with open(output_file, "rb") as f:
-            st.success("Processing Completed!")
-            st.download_button(
-                label="Download a3.xlsx",
-                data=f,
-                file_name="a3.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-
-
-
-
-
+st.info("Note: This app uses your system's built-in voices. Ensure 'Microsoft David' is installed in your Windows Speech settings.")
